@@ -26,14 +26,19 @@ class SoC_demo:
 
 def on_message(client, userdata, message):
     # In ra thông tin tin nhắn
-    print("Topic:", message.topic)
-    print("Payload:", message.payload.decode())
+    # print("Topic:", message.topic)
+    # print("Payload:", message.payload.decode())
     data = json.loads(message.payload.decode())
-    Mode = data['ChargingMode']
-    if Mode == 'True':
-        # mqtt_subscriber.disconnect()
-        s = Simulator(2)
-        s.start()
+    # Mode = data['ChargingMode']
+    for key, value in data.items():
+        # print(f"Key: {key}, Value: {value}")
+        if {key} == {"ChargingMode"}:
+            Mode = {value}
+            print("1")
+            if Mode == {"True"}:
+                # mqtt_subscriber.disconnect()
+                s = Simulator(1)
+                s.start()
 
 
 class Simulator:
@@ -49,7 +54,7 @@ class Simulator:
 
         # mqtt_publisher.loop_start()
 
-        SoC_ran = SoC_demo(20, 95)
+        SoC_ran = SoC_demo(80, 95)
         SoC_send = SoC_ran.sense()
         while SoC_send < 95:
             SoC_send = SoC_send + 1
@@ -67,4 +72,4 @@ mqtt_subscriber = mqtt.Client('Temperature subscriber')
 mqtt_subscriber.connect('171.244.57.88', 1883, 60)
 mqtt_subscriber.on_message = on_message
 mqtt_subscriber.subscribe('evse_service/EVSE45678/#', qos=2)
-mqtt_subscriber.loop_forever(100)
+mqtt_subscriber.loop_forever()
