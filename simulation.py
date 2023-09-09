@@ -30,7 +30,10 @@ def on_message(client, userdata, message):
     print("Payload:", message.payload.decode())
     data = json.loads(message.payload.decode())
     Mode = data['ChargingMode']
-    return Mode, data
+    if Mode == 'True':
+        # mqtt_subscriber.disconnect()
+        s = Simulator(2)
+        s.start()
 
 
 class Simulator:
@@ -40,22 +43,28 @@ class Simulator:
     def start(self):
         mqtt_publisher = mqtt.Client('Temperature publisher')
         mqtt_publisher.subscribe("evse_service/EVSE45678/#")
-        mqtt_publisher.on_message = on_message
+        # mqtt_publisher.on_message = on_message
         mqtt_publisher.connect('171.244.57.88', 1883, 60)
-        print(message.payload.decode())
-        mqtt_publisher.loop_start()
+        mqtt_publisher.subscribe("evse_service/EVSE45678/#")
 
-        # while on_message.Mode == True:
-        #     SoC_ran = SoC_demo(20, 95)
-        #     SoC_send = SoC_ran.sense()
-        #     while SoC_send < 95:
-        #         SoC_send = SoC_send + 1
-        #         SoC_messege = {"SoC": SoC_send}
-        #         jmsg1 = json.dumps(SoC_messege, indent=1)
-        #         mqtt_publisher.publish('evse_service/EVSE45678/SoC', jmsg1, 2)
-        #         time.sleep(1)
-        #     time.sleep(self.interval)
+        # mqtt_publisher.loop_start()
+
+        SoC_ran = SoC_demo(20, 95)
+        SoC_send = SoC_ran.sense()
+        while SoC_send < 95:
+            SoC_send = SoC_send + 1
+            SoC_messege = {"SoC": SoC_send}
+            jmsg1 = json.dumps(SoC_messege, indent=1)
+            mqtt_publisher.publish('evse_service/EVSE45678/SoC', jmsg1, 2)
+            time.sleep(1)
+        SoC_messege = {"ChargingMode": "False"}
+        jmsg1 = json.dumps(SoC_messege, indent=1)
+        mqtt_publisher.publish('evse_service/EVSE45678/ChargeOff', jmsg1, 2)
+        # time.sleep(self.interval)
 
 
-s = Simulator(2)
-s.start()
+mqtt_subscriber = mqtt.Client('Temperature subscriber')
+mqtt_subscriber.connect('171.244.57.88', 1883, 60)
+mqtt_subscriber.on_message = on_message
+mqtt_subscriber.subscribe('evse_service/EVSE45678/#', qos=2)
+mqtt_subscriber.loop_forever(100)
