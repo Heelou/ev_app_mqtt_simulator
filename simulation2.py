@@ -2,7 +2,6 @@ import paho.mqtt.client as mqtt
 from datetime import datetime
 import json
 from random import random
-import time
 
 ChargingMode = False
 Mode = True
