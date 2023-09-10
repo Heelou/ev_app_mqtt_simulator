@@ -5,7 +5,7 @@ from random import random
 import random
 import time
 
-ChargingMode: False
+ChargingMode = False
 Mode: True
 
 
@@ -26,50 +26,60 @@ class SoC_demo:
 
 def on_message(client, userdata, message):
     # In ra thông tin tin nhắn
-    # print("Topic:", message.topic)
-    # print("Payload:", message.payload.decode())
-    data = json.loads(message.payload.decode())
-    # Mode = data['ChargingMode']
-    for key, value in data.items():
-        # print(f"Key: {key}, Value: {value}")
-        if {key} == {"ChargingMode"}:
-            Mode = {value}
-            print("1")
-            if Mode == {"True"}:
-                # mqtt_subscriber.disconnect()
-                s = Simulator(1)
-                s.start()
+
+    data = message.payload.decode()
+
+    if data != None:
+        print("On Message Global")
+        s = Simulator(1.25)
+        s.start()
 
 
 class Simulator:
     def __init__(self, interval):
         self.interval = interval
+    #
+    begin = True
 
     def start(self):
+        self.begin = True
+
+        def on_message(client, userdata, message):
+            print('Message topic {}'.format(message.topic))
+            print('Message payload:')
+            print(message.payload.decode())
+            data = message.payload.decode()
+            # lấy value vào begin
+            print("On message in Class")
+            if data != None:
+                self.begin = False
+                mqtt_publisher.disconnect()
         mqtt_publisher = mqtt.Client('Temperature publisher')
-        mqtt_publisher.subscribe("evse_service/EVSE45678/#")
-        # mqtt_publisher.on_message = on_message
+        mqtt_publisher.on_message = on_message
         mqtt_publisher.connect('171.244.57.88', 1883, 60)
-        mqtt_publisher.subscribe("evse_service/EVSE45678/#")
-
-        # mqtt_publisher.loop_start()
-
-        SoC_ran = SoC_demo(80, 95)
+        mqtt_publisher.loop_start()
+        SoC_ran = SoC_demo(90, 95)
         SoC_send = SoC_ran.sense()
-        while SoC_send < 95:
+        while (SoC_send < 95) and (self.begin == True):
             SoC_send = SoC_send + 1
             SoC_messege = {"SoC": SoC_send}
             jmsg1 = json.dumps(SoC_messege, indent=1)
+
             mqtt_publisher.publish('evse_service/EVSE45678/SoC', jmsg1, 2)
+            mqtt_publisher.subscribe("evse_service/EVSE45678/ChargeOff")
+            # mqtt_publisher.on_message = on_message
+
             time.sleep(1)
-        SoC_messege = {"ChargingMode": "False"}
-        jmsg1 = json.dumps(SoC_messege, indent=1)
-        mqtt_publisher.publish('evse_service/EVSE45678/ChargeOff', jmsg1, 2)
+
+        # SoC_messege = {"ChargingMode": "False"}
+        # jmsg1 = json.dumps(SoC_messege, indent=1)
+        # mqtt_publisher.publish(
+        #     'evse_service/EVSE45678/ChargeOff', jmsg1, 2)
         # time.sleep(self.interval)
 
 
 mqtt_subscriber = mqtt.Client('Temperature subscriber')
 mqtt_subscriber.connect('171.244.57.88', 1883, 60)
 mqtt_subscriber.on_message = on_message
-mqtt_subscriber.subscribe('evse_service/EVSE45678/#', qos=2)
+mqtt_subscriber.subscribe('evse_service/EVSE45678/ChargeOn', qos=2)
 mqtt_subscriber.loop_forever()
